@@ -1,0 +1,31 @@
+{
+  "css.validate": false,
+  "scss.validate": false,
+  "tailwindCSS.experimental.classRegex": [],
+  "tailwindCSS.validate": true,
+  "tailwindCSS.lint.invalidScreen": "ignore",
+  "tailwindCSS.lint.unknownAtRules": "ignore",
+  "tailwindCSS.lint.invalidVariant": "ignore",
+  "tailwindCSS.lint.invalidTailwindDirective": "ignore",
+  "tailwindCSS.lint.recommendedVariantOrder": "ignore",
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Disabled"
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 3306,
+      "driver": "MySQL",
+      "name": "BCD Website",
+      "database": "bcd_website",
+      "username": "root",
+      "password": ""
+    }
+  ]
+}

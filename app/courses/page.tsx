@@ -1,0 +1,161 @@
+import type { Metadata } from "next"
+import { prisma } from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import type { Course } from "@/lib/types"
+import { mapCourse } from "@/lib/map-course"
+import { getLDCourses, getLDLessonCounts, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
+import { COURSE_PRICES } from "@/lib/course-prices"
+import { CourseListClient } from "@/components/course-list-client"
+import { CoursesFaq } from "@/components/courses-faq"
+
+interface CoursesPageProps {
+  searchParams: Promise<{ type?: string }>
+}
+
+export async function generateMetadata({ searchParams }: CoursesPageProps): Promise<Metadata> {
+  const { type } = await searchParams
+  const isCrash = type === "crash"
+  return {
+    title: isCrash ? "Crash Courses - Basecamp Digital" : "Courses - Basecamp Digital",
+    description: isCrash
+      ? "Free crash courses to quickly master in-demand skills"
+      : "Browse all paid courses available on Basecamp Digital",
+  }
+}
+
+export default async function CoursesPage({ searchParams }: CoursesPageProps) {
+  const { type } = await searchParams
+  const isCrash = type === "crash"
+
+  const user = await getCurrentUser()
+
+  let allCourses: Course[] = []
+  let enrolledCourseIds: string[] = []
+
+  // Fetch all DB price overrides upfront (keyed by slug)
+  const dbPriceOverrides = await prisma.courseContent?.findMany({
+    where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
+    select: { slug: true, price: true, originalPrice: true },
+  }) ?? []
+  const dbPriceMap = new Map(dbPriceOverrides.map((r) => [r.slug, r]))
+
+  if (isCrash) {
+    // Crash courses: only from MySQL
+    const localCourses = await prisma.course.findMany({
+      where: { isPublished: true, price: 0 },
+      include: {
+        sections: { include: { lessons: { select: { id: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    allCourses = localCourses.map((c) => {
+      const mapped = mapCourse(c)
+      // Count only actual lessons from sections — excludes any test/quiz items
+      mapped.total_lessons = c.sections.reduce((sum, s) => sum + s.lessons.length, 0)
+      const dbPrice = dbPriceMap.get(c.slug)
+      if (dbPrice?.price != null) mapped.price = dbPrice.price
+      if (dbPrice?.originalPrice != null) mapped.original_price = dbPrice.originalPrice
+      return mapped
+    })
+
+    if (user) {
+      const enrollments = await prisma.enrollment.findMany({
+        where: { userId: user.id },
+        select: { courseId: true },
+      })
+      enrolledCourseIds = enrollments.map((e) => e.courseId)
+    }
+  } else {
+    // Premium courses: from LearnDash — fetch courses, lesson counts, and enrollment in parallel
+    let ldCourses: LDCourse[] = []
+    let lessonCounts: Array<{ id: number; course: number }> = []
+
+    const enrolledCoursesPromise = user?.wpUserId
+      ? getLDAllUserEnrolledCourses(user.wpUserId).catch(() => [] as number[])
+      : Promise.resolve([] as number[])
+
+    try {
+      ;[ldCourses, lessonCounts] = await Promise.all([getLDCourses(), getLDLessonCounts()])
+    } catch {
+      // WordPress temporarily unreachable — show empty state rather than crash
+    }
+
+    // Build lesson count per course
+    const lessonCountByCourse = new Map<number, number>()
+    lessonCounts.forEach((l) => {
+      lessonCountByCourse.set(l.course, (lessonCountByCourse.get(l.course) || 0) + 1)
+    })
+
+    // Fetch featured image URLs for courses that have one but _embed didn't return it
+    const published = ldCourses.filter((c: LDCourse) => c.status === "publish")
+    const missingThumbnailIds = published
+      .filter((c: LDCourse) => c.featured_media > 0 && !c._embedded?.["wp:featuredmedia"]?.[0]?.source_url)
+      .map((c: LDCourse) => c.featured_media)
+    const mediaUrlMap = await getLDMediaUrls(missingThumbnailIds)
+
+    allCourses = published.map((c: LDCourse) => {
+      const priceInfo = COURSE_PRICES[c.id] || COURSE_PRICES[c.slug]
+      // Priority: WP embedded → WP media API → config thumbnailUrl
+      const thumbnailUrl =
+        c._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+        mediaUrlMap.get(c.featured_media) ||
+        priceInfo?.thumbnailUrl ||
+        null
+      const mapped = mapLDCourse(c, thumbnailUrl ?? undefined) as Course
+      mapped.total_lessons = lessonCountByCourse.get(c.id) || 0
+      if (priceInfo) {
+        mapped.price = priceInfo.price
+        mapped.original_price = priceInfo.originalPrice ?? null
+        mapped.brochure_url = priceInfo.brochureUrl ?? null
+      }
+      // DB price overrides static config (admin panel wins)
+      const dbPrice = dbPriceMap.get(c.slug)
+      if (dbPrice?.price != null) mapped.price = dbPrice.price
+      if (dbPrice?.originalPrice != null) mapped.original_price = dbPrice.originalPrice
+      return mapped
+    })
+
+    const enrolled = await enrolledCoursesPromise
+    enrolledCourseIds = enrolled.map(String)
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar user={user ? { email: user.email, name: user.name || undefined } : null} />
+      <main className="flex-1">
+        <section className="py-12 md:py-16">
+          <div className="container mx-auto px-4">
+            <div className="mb-10">
+              {isCrash ? (
+                <>
+                  <h1 className="text-3xl md:text-4xl font-bold">Crash Courses</h1>
+                  <p className="mt-3 text-muted-foreground">
+                    Short, focused, and completely free. Get up to speed fast with our crash courses.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-3xl md:text-4xl font-bold">All Courses</h1>
+                  <p className="mt-3 text-muted-foreground">
+                    Explore our comprehensive collection of courses to boost your skills.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <CourseListClient
+              courses={allCourses}
+              enrolledCourseIds={enrolledCourseIds}
+              isLoggedIn={!!user}
+              searchOnly={isCrash}
+            />
+          </div>
+        </section>
+      </main>
+      {!isCrash && <CoursesFaq />}
+      <Footer />
+    </div>
+  )
+}

@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  fullName      String?   @map("full_name")
+  avatarUrl     String?   @map("avatar_url") @db.Text
+  isAdmin       Boolean   @default(false) @map("is_admin")
+  wpUserId      Int?      @unique @map("wp_user_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  enrollments    Enrollment[]
+  ldEnrollments  LdEnrollment[]
+  lessonProgress LessonProgress[]
+  paymentOrders  PaymentOrder[]
+
+  @@map("users")
+}
+
+model Course {
+  id                   String    @id @default(cuid())
+  title                String
+  slug                 String    @unique
+  description          String?   @db.Text
+  shortDescription     String?   @map("short_description") @db.Text
+  thumbnailUrl         String?   @map("thumbnail_url") @db.Text
+  instructorName       String?   @map("instructor_name")
+  instructorTitle      String?   @map("instructor_title")
+  instructorAvatar     String?   @map("instructor_avatar") @db.Text
+  price                Float     @default(0)
+  originalPrice        Float?    @map("original_price")
+  isPublished          Boolean   @default(false) @map("is_published")
+  totalDurationMinutes Int       @default(0) @map("total_duration_minutes")
+  totalLessons         Int       @default(0) @map("total_lessons")
+  brochureUrl          String?   @map("brochure_url") @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  sections    Section[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Section {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  title       String
+  description String?  @db.Text
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@map("sections")
+}
+
+model Lesson {
+  id            String   @id @default(cuid())
+  sectionId     String   @map("section_id")
+  title         String
+  description   String?  @db.Text
+  vimeoVideoId  String?  @map("vimeo_video_id")
+  durationMinutes Int    @default(0) @map("duration_minutes")
+  orderIndex    Int      @default(0) @map("order_index")
+  isPreview     Boolean  @default(false) @map("is_preview")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  section        Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  lessonProgress LessonProgress[]
+
+  @@map("lessons")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  courseId    String   @map("course_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model CourseContent {
+  id                  String   @id @default(cuid())
+  slug                String   @unique
+  // curriculum sections
+  whatYouWillLearn    Json     @map("what_you_will_learn") @db.Json
+  courseIncludes      Json     @map("course_includes") @db.Json
+  whoThisCourseIsFor  Json     @map("who_this_course_is_for") @db.Json
+  requirements        Json     @map("requirements") @db.Json
+  descriptionExtra    String?  @map("description_extra") @db.Text
+  breadcrumbItems     Json     @map("breadcrumb_items") @db.Json
+  breadcrumbHighlight String?  @map("breadcrumb_highlight")
+  // hero overrides
+  thumbnailUrl        String?  @map("thumbnail_url") @db.Text
+  rating              String?  @map("rating")
+  reviewsCount        String?  @map("reviews_count")
+  studentsCount       String?  @map("students_count")
+  lastUpdated         String?  @map("last_updated")
+  language            String?  @map("language")
+  subtitleLanguages   String?  @map("subtitle_languages")
+  // pricing overrides
+  price               Int?     @map("price")
+  originalPrice       Int?     @map("original_price")
+  // instructor
+  instructorName      String?  @map("instructor_name")
+  instructorTitle     String?  @map("instructor_title")
+  instructorRating    String?  @map("instructor_rating")
+  instructorStudents  String?  @map("instructor_students")
+  instructorBio       String?  @map("instructor_bio") @db.Text
+  instructorAvatar    String?  @map("instructor_avatar") @db.Text
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("course_content")
+}
+
+model LdEnrollment {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  wpCourseId   Int      @map("wp_course_id")
+  courseTitle  String   @map("course_title")
+  enrolledAt   DateTime @default(now()) @map("enrolled_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wpCourseId])
+  @@map("ld_enrollments")
+}
+
+model PaymentOrder {
+  id                  String   @id @default(cuid())
+  userId              String   @map("user_id")
+  wpCourseId          Int      @map("wp_course_id")
+  amount              Float
+  currency            String   @default("INR")
+  razorpayOrderId     String?  @unique @map("razorpay_order_id")
+  razorpayPaymentId   String?  @map("razorpay_payment_id")
+  status              String   @default("created")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_orders")
+}

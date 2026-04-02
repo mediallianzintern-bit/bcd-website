@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Basecamp Digital — User Journey Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#0f1117;color:#fff;min-height:100vh;padding:48px 24px 80px}
+
+  /* ── Layout ── */
+  .page{max-width:1100px;margin:0 auto}
+
+  /* ── Header ── */
+  .header{text-align:center;margin-bottom:56px}
+  .header .badge{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:6px 18px;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#a0aec0;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,4vw,46px);font-weight:900;background:linear-gradient(135deg,#fff 0%,#a0c4ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15;margin-bottom:12px}
+  .header p{color:#718096;font-size:15px;max-width:560px;margin:0 auto}
+
+  /* ── Legend ── */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:48px}
+  .legend-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;color:#a0aec0}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+  /* ── Flow columns ── */
+  .flow{display:flex;gap:0;position:relative}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 8px}
+  .col-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4a5568;margin-bottom:20px;text-align:center}
+
+  /* ── Connectors ── */
+  .arrow-down{width:2px;height:28px;background:linear-gradient(to bottom,rgba(255,255,255,0.15),rgba(255,255,255,0.05));margin:0 auto;position:relative}
+  .arrow-down::after{content:'▼';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,0.2)}
+  .arrow-right{height:2px;flex:1;background:linear-gradient(to right,rgba(255,255,255,0.12),rgba(255,255,255,0.04));align-self:center;position:relative;min-width:20px}
+
+  /* ── Nodes ── */
+  .node{width:100%;border-radius:12px;padding:14px 16px;position:relative;border:1px solid rgba(255,255,255,0.06);transition:transform 0.2s}
+  .node:hover{transform:translateY(-2px)}
+  .node-title{font-size:12px;font-weight:700;margin-bottom:4px;letter-spacing:0.3px}
+  .node-sub{font-size:10.5px;color:rgba(255,255,255,0.45);line-height:1.5}
+  .node-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-bottom:6px}
+
+  /* Node colour themes */
+  .node-ui{background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(37,99,235,0.08));border-color:rgba(59,130,246,0.25)}
+  .node-ui .node-title{color:#93c5fd}
+  .node-ui .node-tag{background:rgba(59,130,246,0.25);color:#93c5fd}
+
+  .node-auth{background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(109,40,217,0.08));border-color:rgba(139,92,246,0.25)}
+  .node-auth .node-title{color:#c4b5fd}
+  .node-auth .node-tag{background:rgba(139,92,246,0.25);color:#c4b5fd}
+
+  .node-prisma{background:linear-gradient(135deg,rgba(251,146,60,0.18),rgba(234,88,12,0.08));border-color:rgba(251,146,60,0.25)}
+  .node-prisma .node-title{color:#fdba74}
+  .node-prisma .node-tag{background:rgba(251,146,60,0.25);color:#fdba74}
+
+  .node-ld{background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border-color:rgba(34,197,94,0.25)}
+  .node-ld .node-title{color:#86efac}
+  .node-ld .node-tag{background:rgba(34,197,94,0.25);color:#86efac}
+
+  .node-pay{background:linear-gradient(135deg,rgba(250,204,21,0.18),rgba(202,138,4,0.08));border-color:rgba(250,204,21,0.25)}
+  .node-pay .node-title{color:#fde68a}
+  .node-pay .node-tag{background:rgba(250,204,21,0.25);color:#fde68a}
+
+  .node-email{background:linear-gradient(135deg,rgba(20,184,166,0.18),rgba(13,148,136,0.08));border-color:rgba(20,184,166,0.25)}
+  .node-email .node-title{color:#5eead4}
+  .node-email .node-tag{background:rgba(20,184,166,0.25);color:#5eead4}
+
+  .node-decision{background:linear-gradient(135deg,rgba(244,63,94,0.15),rgba(190,18,60,0.08));border-color:rgba(244,63,94,0.3);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);padding:24px 16px;text-align:center;width:110px;height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column}
+  .node-decision .node-title{color:#fda4af;font-size:11px}
+
+  .node-start{background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(67,56,202,0.2));border-color:rgba(99,102,241,0.5);text-align:center;border-radius:999px;padding:12px 20px}
+  .node-start .node-title{color:#a5b4fc;font-size:13px;font-weight:800}
+
+  .node-end{background:linear-gradient(135deg,rgba(34,197,94,0.3),rgba(22,163,74,0.2));border-color:rgba(34,197,94,0.5);text-align:center;border-radius:999px;padding:12px 20px}
+  .node-end .node-title{color:#86efac;font-size:13px;font-weight:800}
+
+  /* ── Sections ── */
+  .phase{margin-bottom:12px;position:relative}
+  .phase-label{font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#4a5568;margin-bottom:8px;padding-left:4px;display:flex;align-items:center;gap:8px}
+  .phase-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05)}
+  .phase-num{display:inline-flex;width:20px;height:20px;border-radius:6px;align-items:center;justify-content:center;font-size:9px;font-weight:900;background:rgba(255,255,255,0.06);color:#718096}
+
+  /* ── Big flow rows ── */
+  .flow-row{display:flex;align-items:stretch;gap:0;margin-bottom:0;position:relative}
+  .flow-row .node{flex:1}
+
+  /* ── Connector lines (visual) ── */
+  .vline{width:1px;min-height:24px;background:rgba(255,255,255,0.08);margin:0 auto}
+  .vline-colored{width:2px;min-height:20px;margin:0 auto;border-radius:1px}
+  .hconnect{display:flex;align-items:center;margin:0;width:100%}
+  .hconnect-line{flex:1;height:1px;background:rgba(255,255,255,0.08)}
+  .hconnect-arrow{color:rgba(255,255,255,0.2);font-size:10px}
+
+  /* ── Main layout: vertical flowchart ── */
+  .flowchart{display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
+
+  .step-row{display:flex;align-items:center;width:100%;gap:0;position:relative}
+  .step-node{flex-shrink:0}
+  .step-arrow{flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px}
+  .step-arrow svg{opacity:0.3}
+
+  /* ── Single column flow ── */
+  .single-flow{display:flex;flex-direction:column;align-items:center;width:100%;max-width:700px;margin:0 auto}
+  .sf-node{width:100%}
+  .sf-arrow{display:flex;flex-direction:column;align-items:center;padding:4px 0}
+  .sf-arrow .line{width:2px;height:22px;background:rgba(255,255,255,0.1)}
+  .sf-arrow .tip{color:rgba(255,255,255,0.2);font-size:11px;line-height:1}
+
+  /* ── Fork layout ── */
+  .fork-container{width:100%;display:flex;flex-direction:column;align-items:center}
+  .fork-branches{display:flex;width:100%;gap:16px;align-items:flex-start}
+  .fork-branch{flex:1;display:flex;flex-direction:column;align-items:center}
+  .fork-top{display:flex;width:100%;position:relative;justify-content:center;margin-bottom:0}
+  .fork-top::before{content:'';position:absolute;top:0;left:25%;width:50%;height:1px;background:rgba(255,255,255,0.08);bottom:0;margin:auto}
+
+  /* ── Branch labels ── */
+  .branch-badge{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-align:center}
+  .branch-free{background:rgba(251,146,60,0.15);color:#fdba74;border:1px solid rgba(251,146,60,0.2)}
+  .branch-premium{background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.2)}
+  .branch-pass{background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.2)}
+  .branch-fail{background:rgba(244,63,94,0.15);color:#fda4af;border:1px solid rgba(244,63,94,0.2)}
+
+  /* ── Grid 2 cols ── */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;width:100%}
+
+  /* ── Divider ── */
+  .divider{width:100%;height:1px;background:rgba(255,255,255,0.05);margin:28px 0}
+
+  /* ── Phase wrapper ── */
+  .phase-block{width:100%;margin-bottom:0}
+  .phase-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .phase-circle{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+  .phase-title{font-size:13px;font-weight:800;letter-spacing:0.5px}
+  .phase-title span{display:block;font-size:10px;font-weight:400;color:#4a5568;letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+
+  .connector-v{display:flex;flex-direction:column;align-items:center;padding:6px 0}
+  .connector-v .c-line{width:2px;height:24px;border-radius:1px}
+  .connector-v .c-tip{font-size:10px;color:rgba(255,255,255,0.15)}
+
+  .diamond-row{display:flex;align-items:center;justify-content:center;gap:0;width:100%}
+  .diamond{width:100px;height:60px;transform:rotate(0deg);background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0}
+  .diamond span{font-size:10px;font-weight:700;color:#fda4af;text-align:center;line-height:1.3}
+
+  /* ── Highlight box ── */
+  .highlight-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;width:100%}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="badge">🏕️ Basecamp Digital</div>
+    <h1>User Journey Flow</h1>
+    <p>From landing on the website to receiving a completion certificate — including the payment gateway flow</p>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Next.js UI</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Supabase Auth / JWT</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Prisma / MySQL (Free Courses)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>LearnDash / WordPress API</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div>Payment Gateway (Stripe/Razorpay)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#14b8a6"></div>Email / Certificate</div>
+  </div>
+
+  <div class="single-flow">
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 0: ENTRY -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <div class="phase-block">
+      <div class="phase-header">
+        <div class="phase-circle" style="background:rgba(99,102,241,0.2);color:#a5b4fc">1</div>
+        <div class="phase-title">Entry Point<span>User arrives on the website</span></div>
+      </div>
+      <div class="sf-node">
+        <div class="node node-ui">
+          <div class="node-tag">Next.js UI</div>
+          <div class="node-title">🌐 Landing Page — basecampdigital.co</div>
+          <div class="node-sub">Hero section · Corporate logos · Features · Testimonials · CTA · Featured Courses carousel</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(99,102,241,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <!-- DIAMOND: Has Account? -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:center;width:120px;height:72px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);flex-shrink:0">
+        <span style="font-size:10px;font-weight:700;color:#c4b5fd;text-align:center;line-height:1.3;padding:0 16px">Has<br>account?</span>
+      </div>
+      <div style="display:flex;width:100%;justify-content:space-around;margin-top:0">
+        <div style="font-size:9px;color:#4a5568;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:4px">NO → Sign Up</div>
+        <div style="font-size:9px;color:#4a5568;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:4px">YES → Log In</div>
+      </div>
+    </div>
+
+    <div style="display:flex;width:100%;gap:16px;margin-top:8px">
+
+      <!-- LEFT: Sign Up -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-free" style="margin-bottom:10px">New User</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(251,146,60,0.4);height:16px"></div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ui">
+            <div class="node-tag">UI</div>
+            <div class="node-title">📝 Sign-Up Page</div>
+            <div class="node-sub">Email + Password<br>Full Name</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(139,92,246,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-auth">
+            <div class="node-tag">Supabase / JWT</div>
+            <div class="node-title">🔒 Account Created in Prisma</div>
+            <div class="node-sub">Email · bcrypt-hashed password · fullName stored in MySQL</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ld">
+            <div class="node-tag">LearnDash / WP</div>
+            <div class="node-title">🔗 WP Subscriber Auto-Created</div>
+            <div class="node-sub">POST /wp-json/wp/v2/users<br>roles: ['subscriber'] · wpUserId saved to Prisma</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Login -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-premium" style="margin-bottom:10px">Returning User</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4);height:16px"></div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ui">
+            <div class="node-tag">UI</div>
+            <div class="node-title">🔑 Login Page</div>
+            <div class="node-sub">Email + Password<br>Google OAuth · Facebook OAuth</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(139,92,246,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-auth">
+            <div class="node-tag">Supabase / JWT</div>
+            <div class="node-title">✅ JWT Issued</div>
+            <div class="node-sub">Access Token + Refresh Token<br>Stored as HTTP-only cookies</div>
+          </div>
+        </div>
+        <div style="height:80px"></div>
+      </div>
+
+    </div>
+
+    <div class="connector-v" style="margin-top:8px"><div class="c-line" style="background:rgba(59,130,246,0.4);height:28px"></div><div class="c-tip">▼</div></div>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 2: BROWSE COURSES -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <div class="phase-block" style="width:100%">
+      <div class="phase-header">
+        <div class="phase-circle" style="background:rgba(59,130,246,0.2);color:#93c5fd">2</div>
+        <div class="phase-title">Browse Courses<span>User explores the course catalog</span></div>
+      </div>
+      <div class="sf-node">
+        <div class="node node-ui">
+          <div class="node-tag">Next.js UI</div>
+          <div class="node-title">📚 Courses Page — /courses</div>
+          <div class="node-sub">Free/Crash courses loaded from Prisma · Premium courses loaded from LearnDash API (cached 1 hr)<br>Thumbnails, titles, pricing, lesson counts displayed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(59,130,246,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <div class="sf-node" style="width:100%">
+      <div class="node node-ui">
+        <div class="node-tag">Next.js UI</div>
+        <div class="node-title">🔍 Course Detail Page — /courses/{slug}</div>
+        <div class="node-sub">Full curriculum accordion · Lesson list · Duration · Price · Enrol / Buy button</div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(59,130,246,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <!-- DIAMOND: Free or Premium? -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:center;width:130px;height:78px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3)">
+        <span style="font-size:10px;font-weight:700;color:#fda4af;text-align:center;line-height:1.3;padding:0 18px">Free or<br>Premium?</span>
+      </div>
+      <div style="display:flex;width:100%;justify-content:space-around;margin-top:4px">
+        <div style="font-size:9px;color:#fdba74;font-weight:700;letter-spacing:1px;text-transform:uppercase">FREE COURSE</div>
+        <div style="font-size:9px;color:#86efac;font-weight:700;letter-spacing:1px;text-transform:uppercase">PREMIUM COURSE</div>
+      </div>
+    </div>
+
+    <div style="display:flex;width:100%;gap:16px;margin-top:8px">
+
+      <!-- ─── LEFT BRANCH: Free Course ─── -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-free">Free / Crash Course</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(251,146,60,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-prisma">
+            <div class="node-tag">Prisma / MySQL</div>
+            <div class="node-title">📥 Enrol (Free)</div>
+            <div class="node-sub">POST /api/enroll<br>Creates Enrollment record in local DB<br>No payment required</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(251,146,60,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ui">
+            <div class="node-tag">UI + Prisma</div>
+            <div class="node-title">▶️ Watch Lessons</div>
+            <div class="node-sub">Vimeo / YouTube player<br>Lesson progress → Prisma LessonProgress table</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── RIGHT BRANCH: Premium Course ─── -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-premium">Premium / Paid Course</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-pay">
+            <div class="node-tag">Payment Gateway</div>
+            <div class="node-title">💳 Payment Page</div>
+            <div class="node-sub">Stripe or Razorpay checkout<br>Secure card / UPI / net banking</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(250,204,21,0.4)"></div><div class="c-tip">▼</div></div>
+
+        <!-- DIAMOND: Payment Success? -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:0">
+          <div style="display:flex;align-items:center;justify-content:center;width:100px;height:60px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.3)">
+            <span style="font-size:9px;font-weight:700;color:#fde68a;text-align:center;line-height:1.3;padding:0 14px">Payment<br>OK?</span>
+          </div>
+          <div style="display:flex;width:100%;justify-content:space-around;margin-top:3px">
+            <div style="font-size:8.5px;color:#fda4af;font-weight:700;letter-spacing:1px">FAILED → Retry</div>
+            <div style="font-size:8.5px;color:#86efac;font-weight:700;letter-spacing:1px">SUCCESS ↓</div>
+          </div>
+        </div>
+
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ld">
+            <div class="node-tag">LearnDash / WP API</div>
+            <div class="node-title">✅ Enrolled in LearnDash</div>
+            <div class="node-sub">POST /ldlms/v2/sfwd-courses/{id}/users<br>{ user_ids: [wpUserId] }<br>WP App Password auth (Basic Auth)</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ui">
+            <div class="node-tag">UI + LearnDash</div>
+            <div class="node-title">▶️ Watch Lessons</div>
+            <div class="node-sub">Curriculum from /sfwd-courses/{id}/steps<br>Vimeo / YouTube player · Video auto-marks complete</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="connector-v" style="margin-top:8px"><div class="c-line" style="background:rgba(59,130,246,0.4);height:28px"></div><div class="c-tip">▼</div></div>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 3: LEARNING -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <div class="phase-block" style="width:100%">
+      <div class="phase-header">
+        <div class="phase-circle" style="background:rgba(34,197,94,0.2);color:#86efac">3</div>
+        <div class="phase-title">Learning Experience<span>Inside the course</span></div>
+      </div>
+      <div class="two-col">
+        <div class="node node-ui">
+          <div class="node-tag">Next.js UI</div>
+          <div class="node-title">📹 Lesson Player</div>
+          <div class="node-sub">Vimeo or YouTube embedded player<br>Autoplay countdown (5 sec)<br>"Up next" overlay (Udemy-style)</div>
+        </div>
+        <div class="node node-ui">
+          <div class="node-tag">Next.js UI</div>
+          <div class="node-title">📋 Lesson Sidebar</div>
+          <div class="node-sub">Full curriculum tree<br>✅ Completed lessons highlighted<br>Prev / Next navigation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <div class="sf-node" style="width:100%">
+      <div class="node" style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(59,130,246,0.08));border-color:rgba(34,197,94,0.2)">
+        <div class="node-tag" style="background:rgba(34,197,94,0.2);color:#86efac">Progress Tracking</div>
+        <div class="node-title" style="color:#86efac">📊 Lesson Marked Complete (on video end or manual click)</div>
+        <div class="node-sub">POST /api/progress → LessonProgress table (Prisma) for UI state<br>Overall progress % read back from GET /ldlms/v2/users/{wpId}/course-progress/{courseId} (LearnDash)</div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <!-- DIAMOND: All lessons done? -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:center;width:130px;height:78px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3)">
+        <span style="font-size:10px;font-weight:700;color:#fda4af;text-align:center;line-height:1.3;padding:0 20px">All lessons<br>done?</span>
+      </div>
+      <div style="display:flex;width:100%;justify-content:space-around;margin-top:4px">
+        <div style="font-size:9px;color:#4a5568;font-weight:600;letter-spacing:1px;text-transform:uppercase">NO → Continue watching</div>
+        <div style="font-size:9px;color:#86efac;font-weight:700;letter-spacing:1px;text-transform:uppercase">YES ↓</div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 4: QUIZ -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <div class="phase-block" style="width:100%">
+      <div class="phase-header">
+        <div class="phase-circle" style="background:rgba(139,92,246,0.2);color:#c4b5fd">4</div>
+        <div class="phase-title">Quiz<span>Assessment after completing all lessons</span></div>
+      </div>
+      <div class="sf-node">
+        <div class="node node-ld">
+          <div class="node-tag">LearnDash / WP API</div>
+          <div class="node-title">📝 Quiz Loaded from LearnDash</div>
+          <div class="node-sub">GET /ldlms/v2/sfwd-quiz?course={id} · GET /ldlms/v2/sfwd-question?quiz={id}<br>Correct answers fetched SERVER-SIDE ONLY — never sent to the browser</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(139,92,246,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <div class="sf-node" style="width:100%">
+      <div class="node node-auth">
+        <div class="node-tag">Next.js API — Server</div>
+        <div class="node-title">⚡ User Submits Answers → POST /api/quiz/submit</div>
+        <div class="node-sub">Server re-fetches questions from LearnDash · Grades each answer server-side<br>Score = (earnedPoints / totalPoints) × 100 · Pass if score ≥ passing_percentage (default 80%)</div>
+      </div>
+    </div>
+
+    <div class="connector-v"><div class="c-line" style="background:rgba(139,92,246,0.4)"></div><div class="c-tip">▼</div></div>
+
+    <!-- DIAMOND: Pass or Fail? -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:center;width:120px;height:72px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3)">
+        <span style="font-size:10px;font-weight:700;color:#fda4af;text-align:center;line-height:1.3;padding:0 16px">Pass or<br>Fail?</span>
+      </div>
+      <div style="display:flex;width:100%;justify-content:space-around;margin-top:4px">
+        <div style="font-size:9px;color:#fda4af;font-weight:700;letter-spacing:1px;text-transform:uppercase">FAILED</div>
+        <div style="font-size:9px;color:#86efac;font-weight:700;letter-spacing:1px;text-transform:uppercase">PASSED</div>
+      </div>
+    </div>
+
+    <div style="display:flex;width:100%;gap:16px;margin-top:8px">
+
+      <!-- FAIL branch -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-fail">Failed</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(244,63,94,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-email">
+            <div class="node-tag">Email</div>
+            <div class="node-title">📧 Support Email Sent</div>
+            <div class="node-sub">"Did You Face Difficulty?" email<br>Invite to ask questions & retry<br>Signed: Pritesh Patel</div>
+          </div>
+        </div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(20,184,166,0.4)"></div><div class="c-tip">▼</div></div>
+        <div class="sf-node" style="width:100%">
+          <div class="node node-ui">
+            <div class="node-tag">UI</div>
+            <div class="node-title">🔄 Retry Quiz</div>
+            <div class="node-sub">User can reattempt after support</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASS branch -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="branch-badge branch-pass">Passed ✓</div>
+        <div class="connector-v"><div class="c-line" style="background:rgba(34,197,94,0.4)"></div><div class="c-tip">▼</div></div>
+
+        <!-- ══════════ PHASE 5: CERTIFICATE ══════════ -->
+        <div class="phase-block" style="width:100%">
+          <div class="phase-header">
+            <div class="phase-circle" style="background:rgba(20,184,166,0.2);color:#5eead4">5</div>
+            <div class="phase-title">Certificate<span>Completion reward</span></div>
+          </div>
+          <div class="sf-node" style="width:100%">
+            <div class="node node-email">
+              <div class="node-tag">Next.js API</div>
+              <div class="node-title">📄 PDF Certificate Generated</div>
+              <div class="node-sub">lib/generate-certificate.tsx<br>Student name · Course title · Completion date<br>Pritesh Patel signature · BCD branding</div>
+            </div>
+          </div>
+          <div class="connector-v"><div class="c-line" style="background:rgba(20,184,166,0.4)"></div><div class="c-tip">▼</div></div>
+          <div class="sf-node" style="width:100%">
+            <div class="node node-email">
+              <div class="node-tag">Gmail / Nodemailer</div>
+              <div class="node-title">📬 Certificate Email Sent</div>
+              <div class="node-sub">Subject: "You Have Successfully Completed The Quiz"<br>PDF attached: {name}-Certificate-Basecamp-Digital.pdf<br>Sent from GMAIL_USER via nodemailer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="connector-v" style="margin-top:12px"><div class="c-line" style="background:rgba(34,197,94,0.5);height:28px"></div><div class="c-tip">▼</div></div>
+
+    <!-- END NODE -->
+    <div class="sf-node" style="width:100%">
+      <div class="node node-end" style="text-align:center;padding:18px 20px">
+        <div class="node-title" style="font-size:15px">🏅 Journey Complete</div>
+        <div class="node-sub" style="margin-top:4px">User has their certificate · Can browse more courses · Dashboard shows completed course</div>
+      </div>
+    </div>
+
+    <div style="height:48px"></div>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- BOTTOM: DASHBOARD -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <div class="divider"></div>
+    <div class="phase-block" style="width:100%">
+      <div class="phase-header">
+        <div class="phase-circle" style="background:rgba(59,130,246,0.2);color:#93c5fd">↻</div>
+        <div class="phase-title">User Dashboard — Available Anytime<span>After enrolment</span></div>
+      </div>
+      <div class="three-col">
+        <div class="node node-ui">
+          <div class="node-tag">UI + Prisma</div>
+          <div class="node-title">📊 My Courses</div>
+          <div class="node-sub">Free courses from Prisma<br>Premium courses from LearnDash<br>Merged into one dashboard</div>
+        </div>
+        <div class="node node-ld">
+          <div class="node-tag">LearnDash API</div>
+          <div class="node-title">📈 Progress Bar</div>
+          <div class="node-sub">steps_completed / steps_total<br>from /users/{wpId}/course-progress</div>
+        </div>
+        <div class="node node-ui">
+          <div class="node-tag">UI</div>
+          <div class="node-title">▶️ Continue Learning</div>
+          <div class="node-sub">Resume from last lesson<br>Direct link to /learn/{slug}/{lessonId}</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /single-flow -->
+
+  <!-- Footer -->
+  <div style="text-align:center;margin-top:56px;color:#2d3748;font-size:11px;letter-spacing:1px">
+    BASECAMP DIGITAL &nbsp;·&nbsp; BCD WEBSITE USER JOURNEY &nbsp;·&nbsp; CONFIDENTIAL &nbsp;·&nbsp; MARCH 2026
+  </div>
+
+</div>
+</body>
+</html>
