@@ -239,7 +239,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
         select: { lessonId: true },
       }),
     ])
-    isEnrolled = enrolled || !!localEnrollment
+    isEnrolled = enrolled || !!localEnrollment || !!user.isAdmin
     completedLessonIds = progressRows.map((p) => p.lessonId)
   }
 
