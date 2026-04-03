@@ -15,7 +15,6 @@ import {
   getLDTopicsForCourse,
   getLDQuizzesFromSteps,
   getLDMediaUrls,
-  isLDUserEnrolled,
   mapLDCourse,
   buildLDSections,
   getVimeoDurationsForLessons,
@@ -155,8 +154,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   // ── Try LearnDash (premium) course ───────────────────────────────────────
   // Start wpUserId + isAdmin DB lookup in parallel with the LearnDash course fetch
-  const dbUserPromise: Promise<{ wpUserId: number | null; isAdmin: boolean } | null> = user
-    ? prisma.user.findUnique({ where: { id: user.id }, select: { wpUserId: true, isAdmin: true } })
+  const dbUserPromise: Promise<{ isAdmin: boolean } | null> = user
+    ? prisma.user.findUnique({ where: { id: user.id }, select: { isAdmin: true } })
     : Promise.resolve(null)
 
   let ldCourse = null
@@ -221,27 +220,18 @@ export default async function CoursePage({ params }: CoursePageProps) {
   let isEnrolled = false
   let completedLessonIds: string[] = []
 
-  // Check admin status directly from DB — token may be stale
-  const dbUser = await dbUserPromise
-  if (dbUser?.isAdmin) {
-    // Admins can access all courses
-    isEnrolled = true
-  } else if (user) {
-    const wpUserId = dbUser?.wpUserId ?? null
-    const [enrolled, localEnrollment] = await Promise.all([
-      wpUserId ? isLDUserEnrolled(ldCourse.id, wpUserId) : Promise.resolve(false),
+  if (user) {
+    const [dbUser, localEnrollment, progressRows] = await Promise.all([
+      dbUserPromise,
       prisma.ldEnrollment.findUnique({
         where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
       }).catch(() => null),
+      prisma.lessonProgress.findMany({
+        where: { userId: user.id, completed: true },
+        select: { lessonId: true },
+      }),
     ])
-    isEnrolled = enrolled || !!localEnrollment
-  }
-
-  if (user && isEnrolled) {
-    const progressRows = await prisma.lessonProgress.findMany({
-      where: { userId: user.id, completed: true },
-      select: { lessonId: true },
-    })
+    isEnrolled = !!dbUser?.isAdmin || !!localEnrollment
     completedLessonIds = progressRows.map((p) => p.lessonId)
   }
 
