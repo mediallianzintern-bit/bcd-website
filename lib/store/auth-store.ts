@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }))
 
-// Auto-refresh: refresh access token every 13 minutes (before 15m expiry)
+// Auto-refresh: refresh access token every 6 days (before 7d expiry)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 export function startTokenRefresh() {
@@ -130,7 +130,7 @@ export function startTokenRefresh() {
   refreshInterval = setInterval(() => {
     const { user, refresh } = useAuthStore.getState()
     if (user) refresh()
-  }, 13 * 60 * 1000)
+  }, 6 * 24 * 60 * 60 * 1000)
 }
 
 export function stopTokenRefresh() {

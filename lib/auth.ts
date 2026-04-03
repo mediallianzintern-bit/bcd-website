@@ -8,8 +8,8 @@ const REFRESH_TOKEN_SECRET = new TextEncoder().encode(
   (process.env.AUTH_SECRET || "fallback-secret-change-me") + "-refresh"
 )
 
-const ACCESS_TOKEN_EXPIRY = "15m"
-const REFRESH_TOKEN_EXPIRY = "7d"
+const ACCESS_TOKEN_EXPIRY = "7d"
+const REFRESH_TOKEN_EXPIRY = "30d"
 
 export interface TokenPayload {
   id: string
@@ -71,12 +71,12 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
 
   cookieStore.set("access_token", accessToken, {
     ...COOKIE_OPTIONS,
-    maxAge: 15 * 60, // 15 minutes
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   })
 
   cookieStore.set("refresh_token", refreshToken, {
     ...COOKIE_OPTIONS,
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   })
 }
 
