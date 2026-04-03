@@ -12,7 +12,7 @@ import { BookOpen, Clock, ArrowRight } from "lucide-react"
 import {
   getLDAllUserEnrolledCourses,
   getLDCourseById,
-  getLDLessonsForCourse,
+  getLDCourseSteps,
   mapLDCourse,
 } from "@/lib/learndash"
 
@@ -81,14 +81,14 @@ export default async function DashboardPage() {
     const enrolledCourseIds = await getLDAllUserEnrolledCourses(user.wpUserId)
     const results = await Promise.all(
       enrolledCourseIds.map(async (courseId): Promise<DashboardCourse | null> => {
-        const [ldCourse, lessons] = await Promise.all([
+        const [ldCourse, steps] = await Promise.all([
           getLDCourseById(courseId),
-          getLDLessonsForCourse(courseId),
+          getLDCourseSteps(courseId),
         ])
         if (!ldCourse) return null
 
         const mapped = mapLDCourse(ldCourse)
-        const ldLessonIds = lessons.map((l) => String(l.id))
+        const ldLessonIds = (steps.t?.["sfwd-lessons"] ?? []).map(String)
         const completedCount =
           ldLessonIds.length > 0
             ? await prisma.lessonProgress.count({
