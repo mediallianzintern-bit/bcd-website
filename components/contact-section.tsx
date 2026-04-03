@@ -79,12 +79,18 @@ export default function ContactSection() {
 
   const submitForm = async () => {
     setIsSubmitting(true)
-    // TODO: replace with real API call
-    // await fetch('/api/contact', { method: 'POST', body: JSON.stringify(form) })
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setSubmitted(true)
+      }
+    } finally {
       setIsSubmitting(false)
-      setSubmitted(true)
-    }, 1000)
+    }
   }
 
   const inputClass =
