@@ -228,18 +228,18 @@ export default async function CoursePage({ params }: CoursePageProps) {
   // wpUserIdPromise has been running since before the LD fetch — likely resolved by now
   const wpUserId = await wpUserIdPromise
   if (user) {
-    const [enrolled, localEnrolled, progressRows] = await Promise.all([
+    const [enrolled, localEnrollment, progressRows] = await Promise.all([
       wpUserId ? isLDUserEnrolled(ldCourse.id, wpUserId) : Promise.resolve(false),
-      // Fallback: check local ld_enrollments table (set when user enrolls via API)
-      (prisma as any).ldEnrollment?.findUnique({
+      // Fallback: check local ld_enrollments table
+      prisma.ldEnrollment.findUnique({
         where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
-      }).then((r: unknown) => !!r).catch(() => false) ?? Promise.resolve(false),
+      }).catch(() => null),
       prisma.lessonProgress.findMany({
         where: { userId: user.id, completed: true },
         select: { lessonId: true },
       }),
     ])
-    isEnrolled = enrolled || localEnrolled
+    isEnrolled = enrolled || !!localEnrollment
     completedLessonIds = progressRows.map((p) => p.lessonId)
   }
 
