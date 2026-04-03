@@ -76,7 +76,7 @@ export default async function LearnPage({ params }: LearnPageProps) {
     const enrollment = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId: user.id, courseId: localCourse.id } },
     })
-    if (!enrollment && !currentLesson.is_preview) redirect(`/courses/${slug}`)
+    if (!enrollment && !user.isAdmin && !currentLesson.is_preview) redirect(`/courses/${slug}`)
 
     const progress = await prisma.lessonProgress.findMany({
       where: { userId: user.id, completed: true },
@@ -105,10 +105,10 @@ export default async function LearnPage({ params }: LearnPageProps) {
   const ldCourse = await getLDCourseBySlug(slug)
   if (!ldCourse) notFound()
 
-  // Check enrollment
-  const enrolled = user.wpUserId
+  // Check enrollment — admins always have access
+  const enrolled = user.isAdmin || (user.wpUserId
     ? await isLDUserEnrolled(ldCourse.id, user.wpUserId)
-    : false
+    : false)
   if (!enrolled) redirect(`/courses/${slug}`)
 
   const ldLessonId = parseInt(lessonId)

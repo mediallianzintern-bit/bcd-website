@@ -69,8 +69,10 @@ export default async function HomePage() {
     // WordPress unreachable — show empty state
   }
 
-  // Fetch LD enrolled courses for logged-in user
-  if (user?.wpUserId) {
+  // Admin has access to all courses; otherwise check WP enrollment
+  if (user?.isAdmin) {
+    enrolledCourseIds = mappedCourses.map((c) => c.id)
+  } else if (user?.wpUserId) {
     try {
       const enrolled = await getLDAllUserEnrolledCourses(user.wpUserId)
       enrolledCourseIds = enrolled.map(String)

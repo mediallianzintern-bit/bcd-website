@@ -30,10 +30,10 @@ export default async function QuizPage({ params }: QuizPageProps) {
   const ldCourse = await getLDCourseBySlug(slug)
   if (!ldCourse) notFound()
 
-  // Must be enrolled
-  const enrolled = user.wpUserId
+  // Must be enrolled — admins always have access
+  const enrolled = user.isAdmin || (user.wpUserId
     ? await isLDUserEnrolled(ldCourse.id, user.wpUserId)
-    : false
+    : false)
   if (!enrolled) redirect(`/courses/${slug}`)
 
   const [quiz, questions] = await Promise.all([

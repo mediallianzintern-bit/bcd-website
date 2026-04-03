@@ -61,11 +61,15 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     })
 
     if (user) {
-      const enrollments = await prisma.enrollment.findMany({
-        where: { userId: user.id },
-        select: { courseId: true },
-      })
-      enrolledCourseIds = enrollments.map((e) => e.courseId)
+      if (user.isAdmin) {
+        enrolledCourseIds = allCourses.map((c) => c.id)
+      } else {
+        const enrollments = await prisma.enrollment.findMany({
+          where: { userId: user.id },
+          select: { courseId: true },
+        })
+        enrolledCourseIds = enrollments.map((e) => e.courseId)
+      }
     }
   } else {
     // Premium courses: from LearnDash — fetch courses, lesson counts, and enrollment in parallel
@@ -117,8 +121,12 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       return mapped
     })
 
-    const enrolled = await enrolledCoursesPromise
-    enrolledCourseIds = enrolled.map(String)
+    if (user?.isAdmin) {
+      enrolledCourseIds = allCourses.map((c) => c.id)
+    } else {
+      const enrolled = await enrolledCoursesPromise
+      enrolledCourseIds = enrolled.map(String)
+    }
   }
 
   return (
