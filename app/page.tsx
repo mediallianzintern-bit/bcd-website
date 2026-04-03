@@ -11,10 +11,18 @@ import { AboutFounder } from "@/components/about-founder"
 import { CTASection } from "@/components/cta-section"
 import { getLDCourses, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
 import { COURSE_PRICES } from "@/lib/course-prices"
+import { prisma } from "@/lib/prisma"
 import type { Course } from "@/lib/types"
 
 export default async function HomePage() {
   const user = await getCurrentUser()
+
+  // Fetch DB price overrides from admin panel
+  const dbPriceOverrides = await prisma.courseContent?.findMany({
+    where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
+    select: { slug: true, price: true, originalPrice: true },
+  }).catch(() => []) ?? []
+  const dbPriceMap = new Map(dbPriceOverrides.map((r: { slug: string; price: number | null; originalPrice: number | null }) => [r.slug, r]))
 
   // Fetch LearnDash premium courses only
   let mappedCourses: Course[] = []
@@ -44,6 +52,10 @@ export default async function HomePage() {
           mapped.original_price = priceInfo.originalPrice ?? null
           mapped.brochure_url = priceInfo.brochureUrl ?? null
         }
+        // DB override wins (admin panel changes)
+        const dbPrice = dbPriceMap.get(c.slug)
+        if (dbPrice?.price != null) mapped.price = dbPrice.price
+        if (dbPrice?.originalPrice != null) mapped.original_price = dbPrice.originalPrice
         return mapped
       })
       // Only paid courses in Featured section
