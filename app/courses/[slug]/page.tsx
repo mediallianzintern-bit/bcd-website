@@ -158,7 +158,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const dbUserPromise: Promise<{ wpUserId: number | null; isAdmin: boolean } | null> = user
     ? prisma.user.findUnique({ where: { id: user.id }, select: { wpUserId: true, isAdmin: true } })
     : Promise.resolve(null)
-  const wpUserIdPromise: Promise<number | null> = dbUserPromise.then((r) => r?.wpUserId ?? null)
 
   let ldCourse = null
   try { ldCourse = await getLDCourseBySlug(slug) } catch {}
@@ -222,22 +221,27 @@ export default async function CoursePage({ params }: CoursePageProps) {
   let isEnrolled = false
   let completedLessonIds: string[] = []
 
-  // wpUserIdPromise has been running since before the LD fetch — likely resolved by now
-  const wpUserId = await wpUserIdPromise
-  if (user) {
-    const [enrolled, localEnrollment, progressRows] = await Promise.all([
+  // Check admin status directly from DB — token may be stale
+  const dbUser = await dbUserPromise
+  if (dbUser?.isAdmin) {
+    // Admins can access all courses
+    isEnrolled = true
+  } else if (user) {
+    const wpUserId = dbUser?.wpUserId ?? null
+    const [enrolled, localEnrollment] = await Promise.all([
       wpUserId ? isLDUserEnrolled(ldCourse.id, wpUserId) : Promise.resolve(false),
-      // Fallback: check local ld_enrollments table
       prisma.ldEnrollment.findUnique({
         where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
       }).catch(() => null),
-      prisma.lessonProgress.findMany({
-        where: { userId: user.id, completed: true },
-        select: { lessonId: true },
-      }),
     ])
-    const dbUser = await dbUserPromise
-    isEnrolled = enrolled || !!localEnrollment || !!dbUser?.isAdmin
+    isEnrolled = enrolled || !!localEnrollment
+  }
+
+  if (user && isEnrolled) {
+    const progressRows = await prisma.lessonProgress.findMany({
+      where: { userId: user.id, completed: true },
+      select: { lessonId: true },
+    })
     completedLessonIds = progressRows.map((p) => p.lessonId)
   }
 
