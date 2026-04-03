@@ -742,7 +742,7 @@ function PreviewGateModal({
               <span className="text-3xl font-bold">{currency}{discountedPrice.toFixed(2)}</span>
             </div>
             <Button onClick={() => { onClose(); onBuy() }} className="w-full" size="lg">
-              Buy Now — Go to Razorpay
+              Buy Now
             </Button>
           </>
         )}
@@ -898,7 +898,7 @@ function PriceSection({
         className="w-full bg-primary hover:bg-primary/90" 
         size="lg"
       >
-        Buy Now - Go to Razorpay
+        Buy Now
       </Button>
 
       {!isLoggedIn && (
