@@ -122,7 +122,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       const enrollment = await prisma.enrollment.findUnique({
         where: { userId_courseId: { userId: user.id, courseId: localCourse.id } },
       })
-      isEnrolled = !!enrollment
+      isEnrolled = !!user.isAdmin || !!enrollment
 
       if (isEnrolled) {
         const lessonIds = sections.flatMap((s) => s.lessons.map((l) => l.id))
