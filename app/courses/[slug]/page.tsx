@@ -154,9 +154,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   // ── Try LearnDash (premium) course ───────────────────────────────────────
   // Start wpUserId + isAdmin DB lookup in parallel with the LearnDash course fetch
-  const dbUserPromise: Promise<{ isAdmin: boolean } | null> = user
-    ? prisma.user.findUnique({ where: { id: user.id }, select: { isAdmin: true } })
-    : Promise.resolve(null)
 
   let ldCourse = null
   try { ldCourse = await getLDCourseBySlug(slug) } catch {}
@@ -221,8 +218,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
   let completedLessonIds: string[] = []
 
   if (user) {
-    const [dbUser, localEnrollment, progressRows] = await Promise.all([
-      dbUserPromise,
+    const [localEnrollment, progressRows] = await Promise.all([
       prisma.ldEnrollment.findUnique({
         where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
       }).catch(() => null),
@@ -231,7 +227,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
         select: { lessonId: true },
       }),
     ])
-    isEnrolled = !!dbUser?.isAdmin || !!localEnrollment
+    isEnrolled = !!user.isAdmin || !!localEnrollment
     completedLessonIds = progressRows.map((p) => p.lessonId)
   }
 
