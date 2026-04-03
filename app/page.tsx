@@ -18,11 +18,16 @@ export default async function HomePage() {
   const user = await getCurrentUser()
 
   // Fetch DB price overrides from admin panel
-  const dbPriceOverrides = await prisma.courseContent?.findMany({
-    where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
-    select: { slug: true, price: true, originalPrice: true },
-  }).catch(() => []) ?? []
-  const dbPriceMap = new Map(dbPriceOverrides.map((r: { slug: string; price: number | null; originalPrice: number | null }) => [r.slug, r]))
+  let dbPriceOverrides: Array<{ slug: string; price: number | null; originalPrice: number | null }> = []
+  try {
+    dbPriceOverrides = await prisma.courseContent.findMany({
+      where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
+      select: { slug: true, price: true, originalPrice: true },
+    })
+  } catch {
+    // DB unreachable — skip price overrides
+  }
+  const dbPriceMap = new Map(dbPriceOverrides.map((r) => [r.slug, r]))
 
   // Fetch LearnDash premium courses only
   let mappedCourses: Course[] = []

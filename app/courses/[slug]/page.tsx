@@ -58,7 +58,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const user = await getCurrentUser()
 
   // ── Fetch editable course content (DB overrides defaults) ────────────────
-  const dbContent = (await prisma.courseContent?.findUnique({ where: { slug } })) ?? null
+  let dbContent = null
+  try {
+    dbContent = await prisma.courseContent.findUnique({ where: { slug } })
+  } catch {
+    // DB unreachable — use defaults
+  }
   const defaults = getCourseContentDefaults(slug)
   const courseContent: CourseContent = dbContent
     ? {
