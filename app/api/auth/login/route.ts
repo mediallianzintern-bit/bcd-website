@@ -6,7 +6,6 @@ import {
   generateRefreshToken,
   setAuthCookies,
 } from "@/lib/auth"
-import { createWPUser, findWPUserByEmail } from "@/lib/learndash"
 
 export async function POST(request: Request) {
   try {
@@ -39,30 +38,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Use stored WP user ID if already synced
-    const wpUserId = user.wpUserId
-
-    // If not synced yet, do it in the background — don't block login
-    if (!wpUserId) {
-      const userId = user.id
-      const userName = user.fullName || email
-      ;(async () => {
-        try {
-          const existing = await findWPUserByEmail(email)
-          const id = existing?.id ?? (await createWPUser(email, password, userName))?.id
-          if (id) await prisma.user.update({ where: { id: userId }, data: { wpUserId: id } })
-        } catch {
-          // Non-fatal — will retry on next login
-        }
-      })()
-    }
-
     const tokenPayload = {
       id: user.id,
       email: user.email,
       name: user.fullName,
       isAdmin: user.isAdmin,
-      wpUserId,
+      wpUserId: user.wpUserId ?? null,
     }
 
     const accessToken = await generateAccessToken(tokenPayload)

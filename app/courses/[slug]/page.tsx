@@ -223,17 +223,23 @@ export default async function CoursePage({ params }: CoursePageProps) {
   let completedLessonIds: string[] = []
 
   if (user) {
-    const [localEnrollment, progressRows] = await Promise.all([
-      prisma.ldEnrollment.findUnique({
-        where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
-      }).catch(() => null),
-      prisma.lessonProgress.findMany({
-        where: { userId: user.id, completed: true },
-        select: { lessonId: true },
-      }),
-    ])
-    isEnrolled = !!user.isAdmin || !!localEnrollment
-    completedLessonIds = progressRows.map((p) => p.lessonId)
+    try {
+      const [dbUser, localEnrollment, progressRows] = await Promise.all([
+        prisma.user.findUnique({ where: { id: user.id }, select: { isAdmin: true } }),
+        prisma.ldEnrollment.findUnique({
+          where: { userId_wpCourseId: { userId: user.id, wpCourseId: ldCourse.id } },
+        }).catch(() => null),
+        prisma.lessonProgress.findMany({
+          where: { userId: user.id, completed: true },
+          select: { lessonId: true },
+        }).catch(() => []),
+      ])
+      isEnrolled = !!dbUser?.isAdmin || !!localEnrollment
+      completedLessonIds = progressRows.map((p) => p.lessonId)
+    } catch {
+      // DB unreachable — fall back to JWT isAdmin
+      isEnrolled = !!user.isAdmin
+    }
   }
 
   return (
