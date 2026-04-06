@@ -13,6 +13,7 @@ import {
   getLDAllUserEnrolledCourses,
   getLDCourseById,
   getLDCourseSteps,
+  getLDCourses,
   mapLDCourse,
 } from "@/lib/learndash"
 
@@ -38,15 +39,14 @@ export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
-  // ── Local (crash/free) enrollments ────────────────────────────────────────
-  const localEnrollments = await prisma.enrollment.findMany({
-    where: { userId: user.id },
-    include: { course: true },
-  })
+  // ── Local (crash/free) courses ────────────────────────────────────────────
+  // Admin sees all published courses; regular users see only enrolled ones
+  const localCoursesRaw = user.isAdmin
+    ? await prisma.course.findMany({ where: { isPublished: true } })
+    : await prisma.enrollment.findMany({ where: { userId: user.id }, include: { course: true } }).then((e) => e.map((en) => en.course))
 
   const localCourses: DashboardCourse[] = await Promise.all(
-    localEnrollments.map(async (enrollment) => {
-      const course = enrollment.course
+    localCoursesRaw.map(async (course) => {
       const lessons = await prisma.lesson.findMany({
         where: { section: { courseId: course.id } },
         select: { id: true },
@@ -69,18 +69,28 @@ export default async function DashboardPage() {
         totalLessons,
         completedCount,
         progressPercent: totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0,
-        enrolledAt: enrollment.enrolledAt.toISOString(),
+        enrolledAt: new Date().toISOString(),
         source: "local" as const,
       }
     })
   )
 
-  // ── LearnDash (premium) enrollments ───────────────────────────────────────
+  // ── LearnDash (premium) courses ───────────────────────────────────────────
   let ldCourses: DashboardCourse[] = []
-  if (user.wpUserId) {
-    const enrolledCourseIds = await getLDAllUserEnrolledCourses(user.wpUserId)
+  try {
+    const enrolledCourseIds = user.isAdmin
+      ? await getLDAllUserEnrolledCourses(0).catch(() => [] as number[]) // admin: fetch all via different means
+      : user.wpUserId
+        ? await getLDAllUserEnrolledCourses(user.wpUserId).catch(() => [] as number[])
+        : []
+
+    const ldAllCourses = user.isAdmin ? await getLDCourses().catch(() => []) : []
+    const ldCourseIds = user.isAdmin
+      ? ldAllCourses.filter((c) => c.status === "publish").map((c) => c.id)
+      : enrolledCourseIds
+
     const results = await Promise.all(
-      enrolledCourseIds.map(async (courseId): Promise<DashboardCourse | null> => {
+      ldCourseIds.map(async (courseId): Promise<DashboardCourse | null> => {
         const [ldCourse, steps] = await Promise.all([
           getLDCourseById(courseId),
           getLDCourseSteps(courseId),
@@ -110,11 +120,13 @@ export default async function DashboardPage() {
           completedCount,
           progressPercent: ldLessonIds.length > 0 ? (completedCount / ldLessonIds.length) * 100 : 0,
           enrolledAt: new Date().toISOString(),
-          source: "learndash",
+          source: "learndash" as const,
         }
       })
     )
     ldCourses = results.filter((c): c is DashboardCourse => c !== null)
+  } catch {
+    // WordPress unreachable
   }
 
   const allCourses: DashboardCourse[] = [...localCourses, ...ldCourses]
