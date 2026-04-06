@@ -736,17 +736,28 @@ export function buildLDSections(
     return out
   }
 
+  // Build a topic map by ID for direct-topic sections (learning pathways)
+  const topicMap = new Map(topics.map((t) => [t.id, t]))
+
   // If LearnDash has named sections, use them
   if (steps.sections && steps.sections.length > 0) {
     const raw = steps.sections.map((sec, secIdx) => {
       const sectionId = `ld-section-${courseId}-${sec.id}`
       const sectionLessons = sec.steps
-        .filter((s) => s.startsWith("sfwd-lessons:"))
-        .map((s) => {
-          const lessonId = parseInt(s.split(":")[1])
-          const lesson = lessonMap.get(lessonId)
-          if (!lesson) return null
-          return mapLDLesson(lesson, sectionId, lessonId, durationMap.get(lessonId) ?? 0)
+        .map((s, idx) => {
+          if (s.startsWith("sfwd-lessons:")) {
+            const lessonId = parseInt(s.split(":")[1])
+            const lesson = lessonMap.get(lessonId)
+            if (!lesson) return null
+            return mapLDLesson(lesson, sectionId, lessonId, durationMap.get(lessonId) ?? 0)
+          }
+          if (s.startsWith("sfwd-topic:")) {
+            const topicId = parseInt(s.split(":")[1])
+            const topic = topicMap.get(topicId)
+            if (!topic) return null
+            return mapLDLesson(topic, sectionId, idx, durationMap.get(topicId) ?? 0)
+          }
+          return null
         })
         .filter(Boolean) as Lesson[]
 

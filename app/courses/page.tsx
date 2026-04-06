@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import type { Course } from "@/lib/types"
 import { mapCourse } from "@/lib/map-course"
-import { getLDCourses, getLDCourseSteps, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
+import { getLDCourses, getLDLessonCounts, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
 import { COURSE_PRICES } from "@/lib/course-prices"
 import { CourseListClient } from "@/components/course-list-client"
 import { CoursesFaq } from "@/components/courses-faq"
@@ -91,15 +91,12 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       .filter((c: LDCourse) => c.featured_media > 0 && !c._embedded?.["wp:featuredmedia"]?.[0]?.source_url)
       .map((c: LDCourse) => c.featured_media)
 
-    // Fetch lesson counts from course steps (accurate — course field on lessons is unreliable)
-    const stepResults = await Promise.all(
-      published.map((c) => getLDCourseSteps(c.id).catch(() => null))
-    )
+    // Fetch lesson counts via single bulk call (avoids N parallel requests timing out)
+    const allLessons = await getLDLessonCounts().catch(() => [] as Array<{ id: number; course: number }>)
     const lessonCountByCourse = new Map<number, number>()
-    published.forEach((c, i) => {
-      const steps = stepResults[i]
-      lessonCountByCourse.set(c.id, steps?.t?.["sfwd-lessons"]?.length ?? 0)
-    })
+    for (const l of allLessons) {
+      lessonCountByCourse.set(l.course, (lessonCountByCourse.get(l.course) ?? 0) + 1)
+    }
 
     const mediaUrlMap = await getLDMediaUrls(missingThumbnailIds)
 
