@@ -776,7 +776,11 @@ export function buildLDSections(
 
   // No sections — put all lessons in one section
   const sectionId = `ld-section-${courseId}-1`
-  const orderedLessonIds = steps.t["sfwd-lessons"] || []
+  // PHP may serialize sequential arrays as objects {"0":123,"1":456} — normalise to array
+  const rawLessonIds = steps.t["sfwd-lessons"] || []
+  const orderedLessonIds: number[] = Array.isArray(rawLessonIds)
+    ? rawLessonIds
+    : Object.values(rawLessonIds as Record<string, number>)
   const sectionLessons = orderedLessonIds
     .map((id, idx) => {
       const lesson = lessonMap.get(id)
