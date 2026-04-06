@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { VimeoPlayer } from "@/components/vimeo-player"
 import { YouTubePlayer } from "@/components/youtube-player"
 import { useAuthStore } from "@/lib/store/auth-store"
+import { useProgress } from "../progress-context"
 import type { Course, Section, Lesson } from "@/lib/types"
 
 interface LearnPageClientProps {
@@ -24,14 +25,13 @@ export function LearnPageClient({
   course,
   sections,
   currentLesson,
-  completedLessonIds,
   prevLessonId,
   nextLessonId,
   nextIsQuiz,
 }: LearnPageClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [localCompleted, setLocalCompleted] = useState(completedLessonIds)
+  const { completedLessonIds: localCompleted, markComplete, markIncomplete } = useProgress()
   const [autoplay, setAutoplay] = useState(true)
   const [countdown, setCountdown] = useState<number | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -54,14 +54,14 @@ export function LearnPageClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lessonId: currentLesson.id, completed: false }),
       })
-      setLocalCompleted(prev => prev.filter(id => id !== currentLesson.id))
+      markIncomplete(currentLesson.id)
     } else {
       await fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lessonId: currentLesson.id, completed: true }),
       })
-      setLocalCompleted(prev => [...prev, currentLesson.id])
+      markComplete(currentLesson.id)
     }
 
     if (!skipRefresh) {
@@ -78,7 +78,7 @@ export function LearnPageClient({
     // Mark complete in background — don't block countdown
     const wasAlreadyCompleted = localCompleted.includes(currentLesson.id)
     if (!wasAlreadyCompleted) {
-      setLocalCompleted(prev => [...prev, currentLesson.id])
+      markComplete(currentLesson.id)
 
       await fetch("/api/progress", {
         method: "POST",

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { LessonSidebar } from "@/components/lesson-sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ProgressProvider, useProgress } from "./progress-context"
 import type { Course, Section } from "@/lib/types"
 
 interface LearnLayoutClientProps {
@@ -19,24 +20,23 @@ interface LearnLayoutClientProps {
   quizzes?: { id: number; title: string }[]
 }
 
-export function LearnLayoutClient({
+function LearnLayoutInner({
   children,
   course,
   sections,
-  completedLessonIds,
   totalLessons,
   quizzes,
-}: LearnLayoutClientProps) {
+}: Omit<LearnLayoutClientProps, "completedLessonIds">) {
   const params = useParams()
   const currentLessonId = params.lessonId as string
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { completedLessonIds } = useProgress()
 
   const completedCount = completedLessonIds.length
   const progressPercent = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-3">
@@ -87,7 +87,6 @@ export function LearnLayoutClient({
       </header>
 
       <div className="flex-1 flex">
-        {/* Desktop Sidebar */}
         <aside className="hidden lg:block w-80 shrink-0">
           <div className="sticky top-14 h-[calc(100vh-3.5rem)]">
             <LessonSidebar
@@ -100,12 +99,27 @@ export function LearnLayoutClient({
             />
           </div>
         </aside>
-
-        {/* Content — only this re-renders on lesson navigation */}
         <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>
     </div>
+  )
+}
+
+export function LearnLayoutClient({
+  children,
+  course,
+  sections,
+  completedLessonIds,
+  totalLessons,
+  quizzes,
+}: LearnLayoutClientProps) {
+  return (
+    <ProgressProvider initialCompletedIds={completedLessonIds}>
+      <LearnLayoutInner course={course} sections={sections} totalLessons={totalLessons} quizzes={quizzes}>
+        {children}
+      </LearnLayoutInner>
+    </ProgressProvider>
   )
 }
