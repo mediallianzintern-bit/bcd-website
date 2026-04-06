@@ -67,12 +67,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const defaults = getCourseContentDefaults(slug)
   const courseContent: CourseContent = dbContent
     ? {
-        whatYouWillLearn: dbContent.whatYouWillLearn as string[],
-        courseIncludes: dbContent.courseIncludes as string[],
-        whoThisCourseIsFor: dbContent.whoThisCourseIsFor as string[],
-        requirements: dbContent.requirements as string[],
+        whatYouWillLearn: ((dbContent.whatYouWillLearn as string[])?.length > 0 ? dbContent.whatYouWillLearn as string[] : defaults.whatYouWillLearn),
+        courseIncludes: ((dbContent.courseIncludes as string[])?.length > 0 ? dbContent.courseIncludes as string[] : defaults.courseIncludes),
+        whoThisCourseIsFor: ((dbContent.whoThisCourseIsFor as string[])?.length > 0 ? dbContent.whoThisCourseIsFor as string[] : defaults.whoThisCourseIsFor),
+        requirements: ((dbContent.requirements as string[])?.length > 0 ? dbContent.requirements as string[] : defaults.requirements),
         descriptionExtra: dbContent.descriptionExtra ?? defaults.descriptionExtra,
-        breadcrumbItems: dbContent.breadcrumbItems as string[],
+        breadcrumbItems: ((dbContent.breadcrumbItems as string[])?.length > 0 ? dbContent.breadcrumbItems as string[] : defaults.breadcrumbItems),
         breadcrumbHighlight: dbContent.breadcrumbHighlight ?? defaults.breadcrumbHighlight,
         thumbnailUrl: dbContent.thumbnailUrl ?? null,
         rating: dbContent.rating ?? defaults.rating,
@@ -218,6 +218,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const topics = isFreeLD ? await getLDTopicsForCourse(ldCourse.id) : []
 
   const mappedSections: Section[] = buildLDSections(String(ldCourse.id), steps, lessons, durationMap, topics)
+
+  // Compute total duration dynamically from section lesson durations
+  mappedCourse.total_duration_minutes = mappedSections.reduce(
+    (sum, section) => sum + (section.lessons || []).reduce((s, l) => s + (l.duration_minutes || 0), 0),
+    0
+  )
 
   let isEnrolled = false
   let completedLessonIds: string[] = []

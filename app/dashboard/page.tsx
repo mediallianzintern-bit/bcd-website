@@ -14,6 +14,8 @@ import {
   getLDCourseById,
   getLDCourseSteps,
   getLDCourses,
+  getLDLessonsForCourse,
+  getVimeoDurationsForLessons,
   mapLDCourse,
 } from "@/lib/learndash"
 

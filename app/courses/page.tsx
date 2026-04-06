@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import type { Course } from "@/lib/types"
 import { mapCourse } from "@/lib/map-course"
-import { getLDCourses, getLDLessonCounts, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
+import { getLDCourses, getLDCourseSteps, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
 import { COURSE_PRICES } from "@/lib/course-prices"
 import { CourseListClient } from "@/components/course-list-client"
 import { CoursesFaq } from "@/components/courses-faq"
@@ -72,43 +72,46 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       }
     }
   } else {
-    // Premium courses: from LearnDash — fetch courses, lesson counts, and enrollment in parallel
+    // Premium courses: from LearnDash
     let ldCourses: LDCourse[] = []
-    let lessonCounts: Array<{ id: number; course: number }> = []
 
     const enrolledCoursesPromise = user?.wpUserId
       ? getLDAllUserEnrolledCourses(user.wpUserId).catch(() => [] as number[])
       : Promise.resolve([] as number[])
 
     try {
-      ;[ldCourses, lessonCounts] = await Promise.all([getLDCourses(), getLDLessonCounts()])
+      ldCourses = await getLDCourses()
     } catch {
       // WordPress temporarily unreachable — show empty state rather than crash
     }
-
-    // Build lesson count per course
-    const lessonCountByCourse = new Map<number, number>()
-    lessonCounts.forEach((l) => {
-      lessonCountByCourse.set(l.course, (lessonCountByCourse.get(l.course) || 0) + 1)
-    })
 
     // Fetch featured image URLs for courses that have one but _embed didn't return it
     const published = ldCourses.filter((c: LDCourse) => c.status === "publish")
     const missingThumbnailIds = published
       .filter((c: LDCourse) => c.featured_media > 0 && !c._embedded?.["wp:featuredmedia"]?.[0]?.source_url)
       .map((c: LDCourse) => c.featured_media)
+
+    // Fetch lesson counts from course steps (accurate — course field on lessons is unreliable)
+    const stepResults = await Promise.all(
+      published.map((c) => getLDCourseSteps(c.id).catch(() => null))
+    )
+    const lessonCountByCourse = new Map<number, number>()
+    published.forEach((c, i) => {
+      const steps = stepResults[i]
+      lessonCountByCourse.set(c.id, steps?.t?.["sfwd-lessons"]?.length ?? 0)
+    })
+
     const mediaUrlMap = await getLDMediaUrls(missingThumbnailIds)
 
     allCourses = published.map((c: LDCourse) => {
       const priceInfo = COURSE_PRICES[c.id] || COURSE_PRICES[c.slug]
-      // Priority: WP embedded → WP media API → config thumbnailUrl
       const thumbnailUrl =
         c._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
         mediaUrlMap.get(c.featured_media) ||
         priceInfo?.thumbnailUrl ||
         null
       const mapped = mapLDCourse(c, thumbnailUrl ?? undefined) as Course
-      mapped.total_lessons = lessonCountByCourse.get(c.id) || 0
+      mapped.total_lessons = lessonCountByCourse.get(c.id) ?? 0
       if (priceInfo) {
         mapped.price = priceInfo.price
         mapped.original_price = priceInfo.originalPrice ?? null
