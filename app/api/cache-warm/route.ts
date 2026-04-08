@@ -19,14 +19,7 @@ import {
  *
  * In production you can add this to your deployment script or a cron job.
  */
-export async function GET(request: Request) {
-  const secret = process.env.CACHE_WARM_SECRET
-  const { searchParams } = new URL(request.url)
-
-  if (secret && searchParams.get("secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export async function GET() {
   const start = Date.now()
   const results: Record<string, unknown> = {}
 
