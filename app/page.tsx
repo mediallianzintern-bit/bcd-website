@@ -9,7 +9,7 @@ import { CorporateLogos } from "@/components/corporate-logos"
 import { FeaturesSection } from "@/components/features-section"
 import { AboutFounder } from "@/components/about-founder"
 import { CTASection } from "@/components/cta-section"
-import { getLDCourses, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
+import { getLDCourses, getLDLessonCounts, getLDAllUserEnrolledCourses, getLDMediaUrls, mapLDCourse, type LDCourse } from "@/lib/learndash"
 import { COURSE_PRICES } from "@/lib/course-prices"
 import { prisma } from "@/lib/prisma"
 import type { Course } from "@/lib/types"
@@ -34,8 +34,16 @@ export default async function HomePage() {
   let enrolledCourseIds: string[] = []
 
   try {
-    const ldCourses = await getLDCourses()
+    const [ldCourses, allLessons] = await Promise.all([
+      getLDCourses(),
+      getLDLessonCounts().catch(() => [] as Array<{ id: number; course: number }>),
+    ])
     const published = ldCourses.filter((c: LDCourse) => c.status === "publish")
+
+    const lessonCountByCourse = new Map<number, number>()
+    for (const l of allLessons) {
+      lessonCountByCourse.set(l.course, (lessonCountByCourse.get(l.course) ?? 0) + 1)
+    }
 
     // Fetch missing thumbnails via media API
     const missingMediaIds = published
@@ -52,6 +60,7 @@ export default async function HomePage() {
           priceInfo?.thumbnailUrl ||
           null
         const mapped = mapLDCourse(c, thumbnailUrl ?? undefined) as Course
+        mapped.total_lessons = lessonCountByCourse.get(c.id) ?? 0
         if (priceInfo) {
           mapped.price = priceInfo.price
           mapped.original_price = priceInfo.originalPrice ?? null
