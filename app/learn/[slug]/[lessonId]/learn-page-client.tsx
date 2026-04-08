@@ -47,6 +47,24 @@ export function LearnPageClient({
     setCountdown(null)
   }, [])
 
+  const maybeSendCertificate = useCallback((newCompleted: string[]) => {
+    const allLessonIds = sections.flatMap(s => s.lessons ?? []).map(l => l.id)
+    const isAllDone = allLessonIds.length > 0 && allLessonIds.every(id => newCompleted.includes(id))
+    if (!isAllDone) return
+    const { user } = useAuthStore.getState()
+    if (!user) return
+    fetch("/api/certificate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: user.name || user.email,
+        email: user.email,
+        courseTitle: course.title,
+        completedAt: new Date().toISOString(),
+      }),
+    }).catch(() => {/* silent */})
+  }, [sections, course.title])
+
   const toggleComplete = async (skipRefresh = false) => {
     if (isCompleted) {
       await fetch("/api/progress", {
@@ -62,6 +80,7 @@ export function LearnPageClient({
         body: JSON.stringify({ lessonId: currentLesson.id, completed: true }),
       })
       markComplete(currentLesson.id)
+      maybeSendCertificate([...localCompleted, currentLesson.id])
     }
 
     if (!skipRefresh) {
@@ -87,25 +106,7 @@ export function LearnPageClient({
       })
 
       // Check if this was the last lesson — send certificate
-      const newCompleted = [...localCompleted, currentLesson.id]
-      const allLessonIds = sections.flatMap(s => s.lessons ?? []).map(l => l.id)
-      const isAllDone = allLessonIds.every(id => newCompleted.includes(id))
-
-      if (isAllDone && !nextLessonId) {
-        const { user } = useAuthStore.getState()
-        if (user) {
-          fetch("/api/certificate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: user.name || user.email,
-              email: user.email,
-              courseTitle: course.title,
-              completedAt: new Date().toISOString(),
-            }),
-          }).catch(() => {/* silent fail */})
-        }
-      }
+      maybeSendCertificate([...localCompleted, currentLesson.id])
     }
 
     if (!autoplay || !nextLessonId || !mountedRef.current) return
