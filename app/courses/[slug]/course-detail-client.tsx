@@ -418,6 +418,7 @@ export function CourseDetailClient({
                       isFree={isFree}
                       isEnrolled={isEnrolled}
                       isLoggedIn={isLoggedIn}
+                      slug={course.slug}
                       currency={currency}
                       discountedPrice={discountedPrice}
                       originalPrice={originalPrice}
@@ -609,6 +610,7 @@ export function CourseDetailClient({
                       isFree={isFree}
                       isEnrolled={isEnrolled}
                       isLoggedIn={isLoggedIn}
+                      slug={course.slug}
                       currency={currency}
                       discountedPrice={discountedPrice}
                       originalPrice={originalPrice}
@@ -756,6 +758,7 @@ function PriceSection({
   isFree,
   isEnrolled,
   isLoggedIn,
+  slug,
   currency,
   discountedPrice,
   originalPrice,
@@ -778,6 +781,7 @@ function PriceSection({
   isFree: boolean
   isEnrolled: boolean
   isLoggedIn: boolean
+  slug: string
   currency: string
   discountedPrice: number
   originalPrice: number
@@ -804,10 +808,10 @@ function PriceSection({
           <p className="text-2xl font-extrabold text-primary mb-1">FREE</p>
           <p className="text-sm text-muted-foreground">No credit card required</p>
         </div>
-        <a href="/auth/sign-up">
+        <a href={`/auth/sign-up?next=${encodeURIComponent(`/courses/${slug}`)}`}>
           <Button className="w-full" size="lg">Sign Up to Access</Button>
         </a>
-        <a href="/auth/login">
+        <a href={`/auth/login?next=${encodeURIComponent(`/courses/${slug}`)}`}>
           <Button variant="outline" className="w-full" size="lg">Already have an account? Log In</Button>
         </a>
       </div>
@@ -913,7 +917,7 @@ function PriceSection({
 
       {!isEnrolled && (
         brochureUrl ? (
-          <BrochureButton brochureUrl={brochureUrl} isLoggedIn={isLoggedIn} />
+          <BrochureButton brochureUrl={brochureUrl} isLoggedIn={isLoggedIn} slug={slug} />
         ) : (
           <Button variant="outline" className="w-full gap-2" disabled>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -929,7 +933,7 @@ function PriceSection({
   )
 }
 
-function BrochureButton({ brochureUrl, isLoggedIn }: { brochureUrl: string; isLoggedIn: boolean }) {
+function BrochureButton({ brochureUrl, isLoggedIn, slug }: { brochureUrl: string; isLoggedIn: boolean; slug: string }) {
   const [showModal, setShowModal] = useState(false)
 
   const DownloadIcon = () => (
@@ -988,7 +992,7 @@ function BrochureButton({ brochureUrl, isLoggedIn }: { brochureUrl: string; isLo
               <a href={`/auth/login?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`} className="block">
                 <Button className="w-full" size="lg">Log In</Button>
               </a>
-              <a href="/auth/sign-up" className="block">
+              <a href={`/auth/sign-up?next=${encodeURIComponent(`/courses/${slug}`)}`} className="block">
                 <Button variant="outline" className="w-full" size="lg">Create a Free Account</Button>
               </a>
             </div>
