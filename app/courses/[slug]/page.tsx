@@ -96,11 +96,24 @@ export default async function CoursePage({ params }: CoursePageProps) {
   })
 
   if (localCourse) {
-    const sections = await prisma.section.findMany({
-      where: { courseId: localCourse.id },
-      include: { lessons: { orderBy: { orderIndex: "asc" } } },
-      orderBy: { orderIndex: "asc" },
-    })
+    const [sections, ldCourseForQuiz] = await Promise.all([
+      prisma.section.findMany({
+        where: { courseId: localCourse.id },
+        include: { lessons: { orderBy: { orderIndex: "asc" } } },
+        orderBy: { orderIndex: "asc" },
+      }),
+      getLDCourseBySlug(slug).catch(() => null),
+    ])
+
+    // Fetch quizzes from LearnDash if the course also exists there
+    let localQuizzes: { id: number; title: string }[] = []
+    if (ldCourseForQuiz) {
+      try {
+        const ldSteps = await getLDCourseSteps(ldCourseForQuiz.id)
+        const quizzes = await getLDQuizzesFromSteps(ldSteps)
+        localQuizzes = quizzes.map((q) => ({ id: q.id, title: decodeHtml(q.title.rendered) }))
+      } catch {}
+    }
 
     const mappedCourse = mapCourse(localCourse)
     // Override brochure URL from course-prices config if available (DB may have stale value)
@@ -145,6 +158,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           <CourseDetailClient
             course={mappedCourse}
             sections={mappedSections}
+            quizzes={localQuizzes}
             isEnrolled={isEnrolled}
             isLoggedIn={!!user}
             completedLessonIds={completedLessonIds}
