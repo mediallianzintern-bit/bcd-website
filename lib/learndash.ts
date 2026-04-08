@@ -61,7 +61,7 @@ function cacheSet(key: string, data: unknown, ttlMs: number) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WP_FETCH_TIMEOUT_MS = 15_000 // 15 s — fail fast, stale cache handles the rest
+const WP_FETCH_TIMEOUT_MS = 25_000 // 25 s — give WP more time before falling back to cache
 
 async function ldFetch<T>(
   url: string,
@@ -80,12 +80,14 @@ async function ldFetch<T>(
   const timer = setTimeout(() => controller.abort(), WP_FETCH_TIMEOUT_MS)
 
   try {
+    const revalidateSecs = options.noCache ? 0 : (options.revalidate ?? 3600)
     const res = await fetch(url, {
       headers: {
         Authorization: getAuthHeader(),
         "Content-Type": "application/json",
       },
-      cache: "no-store",
+      // Use Next.js data cache — persists across Vercel serverless invocations
+      next: { revalidate: revalidateSecs },
       signal: controller.signal,
     })
 
