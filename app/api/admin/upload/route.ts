@@ -3,6 +3,10 @@ import { writeFile } from "fs/promises"
 import { join } from "path"
 import { getCurrentUser } from "@/lib/auth"
 
+export const config = {
+  api: { bodyParser: { sizeLimit: "7mb" } },
+}
+
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.isAdmin) {
@@ -22,9 +26,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only JPEG, PNG, WebP, and GIF images are allowed" }, { status: 400 })
   }
 
-  // Max 5MB
-  if (file.size > 5 * 1024 * 1024) {
-    return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 })
+  // Max 7MB
+  if (file.size > 7 * 1024 * 1024) {
+    return NextResponse.json({ error: "File too large (max 7MB)" }, { status: 400 })
   }
 
   const bytes = await file.arrayBuffer()
