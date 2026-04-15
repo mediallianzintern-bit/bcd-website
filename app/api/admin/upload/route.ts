@@ -36,7 +36,11 @@ export async function POST(req: NextRequest) {
   const filename = `uploads/${Date.now()}-${safeName}.${ext}`
 
   // Upload to Vercel Blob (persists across deployments)
-  const blob = await put(filename, file, { access: "public" })
-
-  return NextResponse.json({ url: blob.url })
+  try {
+    const blob = await put(filename, file, { access: "public" })
+    return NextResponse.json({ url: blob.url })
+  } catch (err) {
+    console.error("Blob upload error:", err)
+    return NextResponse.json({ error: "Upload failed", detail: String(err) }, { status: 500 })
+  }
 }
