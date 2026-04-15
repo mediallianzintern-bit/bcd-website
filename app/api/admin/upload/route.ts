@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { writeFile } from "fs/promises"
-import { join } from "path"
+import { put } from "@vercel/blob"
 import { getCurrentUser } from "@/lib/auth"
 
 export const config = {
@@ -31,20 +30,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File too large (max 7MB)" }, { status: 400 })
   }
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
-  // Generate unique filename: timestamp + original name (sanitized)
+  // Generate unique filename
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg"
   const safeName = file.name
     .replace(/\.[^.]+$/, "")
     .replace(/[^a-z0-9]/gi, "-")
     .toLowerCase()
     .slice(0, 40)
-  const filename = `${Date.now()}-${safeName}.${ext}`
+  const filename = `uploads/${Date.now()}-${safeName}.${ext}`
 
-  const uploadDir = join(process.cwd(), "public", "uploads")
-  await writeFile(join(uploadDir, filename), buffer)
+  // Upload to Vercel Blob (persists across deployments)
+  const blob = await put(filename, file, { access: "public" })
 
-  return NextResponse.json({ url: `/uploads/${filename}` })
+  return NextResponse.json({ url: blob.url })
 }
