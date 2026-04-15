@@ -2,10 +2,6 @@ import { NextResponse, type NextRequest } from "next/server"
 import { put } from "@vercel/blob"
 import { getCurrentUser } from "@/lib/auth"
 
-export const config = {
-  api: { bodyParser: { sizeLimit: "7mb" } },
-}
-
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.isAdmin) {
