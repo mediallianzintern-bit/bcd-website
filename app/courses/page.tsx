@@ -34,10 +34,9 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   let allCourses: Course[] = []
   let enrolledCourseIds: string[] = []
 
-  // Fetch all DB price overrides upfront (keyed by slug)
+  // Fetch all DB overrides upfront (price + thumbnail, keyed by slug)
   const dbPriceOverrides = await prisma.courseContent?.findMany({
-    where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
-    select: { slug: true, price: true, originalPrice: true },
+    select: { slug: true, price: true, originalPrice: true, thumbnailUrl: true },
   }) ?? []
   const dbPriceMap = new Map(dbPriceOverrides.map((r) => [r.slug, r]))
 
@@ -114,10 +113,11 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         mapped.original_price = priceInfo.originalPrice ?? null
         mapped.brochure_url = priceInfo.brochureUrl ?? null
       }
-      // DB price overrides static config (admin panel wins)
+      // DB overrides static config (admin panel wins)
       const dbPrice = dbPriceMap.get(c.slug)
       if (dbPrice?.price != null) mapped.price = dbPrice.price
       if (dbPrice?.originalPrice != null) mapped.original_price = dbPrice.originalPrice
+      if (dbPrice?.thumbnailUrl) mapped.thumbnail_url = dbPrice.thumbnailUrl
       return mapped
     })
 
