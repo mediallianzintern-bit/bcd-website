@@ -17,15 +17,14 @@ import type { Course } from "@/lib/types"
 export default async function HomePage() {
   const user = await getCurrentUser()
 
-  // Fetch DB price overrides from admin panel
-  let dbPriceOverrides: Array<{ slug: string; price: number | null; originalPrice: number | null }> = []
+  // Fetch DB overrides from admin panel
+  let dbPriceOverrides: Array<{ slug: string; price: number | null; originalPrice: number | null; thumbnailUrl: string | null }> = []
   try {
     dbPriceOverrides = await prisma.courseContent.findMany({
-      where: { OR: [{ price: { not: null } }, { originalPrice: { not: null } }] },
-      select: { slug: true, price: true, originalPrice: true },
+      select: { slug: true, price: true, originalPrice: true, thumbnailUrl: true },
     })
   } catch {
-    // DB unreachable — skip price overrides
+    // DB unreachable — skip overrides
   }
   const dbPriceMap = new Map(dbPriceOverrides.map((r) => [r.slug, r]))
 
@@ -70,6 +69,7 @@ export default async function HomePage() {
         const dbPrice = dbPriceMap.get(c.slug)
         if (dbPrice?.price != null) mapped.price = dbPrice.price
         if (dbPrice?.originalPrice != null) mapped.original_price = dbPrice.originalPrice
+        if (dbPrice?.thumbnailUrl) mapped.thumbnail_url = dbPrice.thumbnailUrl
         return mapped
       })
       // Only paid courses in Featured section
